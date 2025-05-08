@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id
+  email     String   @unique
+  password  String
+  nama      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model Dosen {
+  id                                   String   @id
+  nip                                  String   @unique
+  nama                                 String
+  email                                String   @unique
+  password                             String
+  noHP                                 String?
+  alamat                               String?
+  createdAt                            DateTime @default(now())
+  updatedAt                            DateTime
+  Kelas_Kelas_dosenPendampingIdToDosen Kelas[]  @relation("Kelas_dosenPendampingIdToDosen")
+  Kelas_Kelas_dosenUtamaIdToDosen      Kelas[]  @relation("Kelas_dosenUtamaIdToDosen")
+}
+
+model Kelas {
+  id                                   String             @id
+  kodeKelas                            String             @unique
+  namaKelas                            String
+  pinKelas                             String
+  hariPertemuan                        String
+  jumlahPertemuan                      Int
+  statusAktif                          Boolean            @default(true)
+  createdAt                            DateTime           @default(now())
+  updatedAt                            DateTime
+  dosenUtamaId                         String
+  dosenPendampingId                    String?
+  deskripsi                            String?
+  Dosen_Kelas_dosenPendampingIdToDosen Dosen?             @relation("Kelas_dosenPendampingIdToDosen", fields: [dosenPendampingId], references: [id])
+  Dosen_Kelas_dosenUtamaIdToDosen      Dosen              @relation("Kelas_dosenUtamaIdToDosen", fields: [dosenUtamaId], references: [id])
+  MahasiswaKelas                       MahasiswaKelas[]
+  PertemuanAbsensi                     PertemuanAbsensi[]
+}
+
+model Mahasiswa {
+  id               String             @id
+  nim              String             @unique
+  nama             String
+  email            String             @unique
+  password         String
+  noHP             String?
+  alamat           String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  MahasiswaKelas   MahasiswaKelas[]
+  PertemuanAbsensi PertemuanAbsensi[]
+}
+
+model MahasiswaKelas {
+  id            String    @id
+  mahasiswaId   String
+  kelasId       String
+  tanggalGabung DateTime  @default(now())
+  statusAktif   Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  Kelas         Kelas     @relation(fields: [kelasId], references: [id])
+  Mahasiswa     Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+
+  @@unique([mahasiswaId, kelasId])
+}
+
+model PertemuanAbsensi {
+  id               String          @id
+  nomorPertemuan   Int
+  tanggalPertemuan DateTime
+  topik            String?
+  catatan          String?
+  mahasiswaId      String
+  statusKehadiran  StatusKehadiran @default(NONE)
+  jamAbsen         DateTime?
+  lokasi           String?
+  keterangan       String?
+  kelasId          String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime
+  Kelas            Kelas           @relation(fields: [kelasId], references: [id])
+  Mahasiswa        Mahasiswa       @relation(fields: [mahasiswaId], references: [id])
+
+  @@unique([kelasId, nomorPertemuan, mahasiswaId])
+  @@index([kelasId, nomorPertemuan])
+  @@index([mahasiswaId])
+}
+
+enum StatusKehadiran {
+  HADIR
+  TELAT
+  IZIN
+  SAKIT
+  ALPHA
+  NONE
+}

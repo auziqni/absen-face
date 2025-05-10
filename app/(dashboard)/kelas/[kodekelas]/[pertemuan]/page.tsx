@@ -1,40 +1,53 @@
 // File: app/kelas/[kodekelas]/[pertemuan]/page.tsx
 
 import React from "react";
-import { PrismaClient, StatusKehadiran } from "@/lib/generated/prisma";
+import { PrismaClient, Kelas } from "@/lib/generated/prisma";
+import { currentUser } from "@clerk/nextjs/server";
 import TableAbsensi from "@/components/dashboard/table";
 const prisma = new PrismaClient();
 
-async function isKelasExists(kodeKelas: string): Promise<boolean> {
-  try {
-    const kelas = await prisma.kelas.findUnique({
-      where: {
-        kodeKelas: kodeKelas,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    return kelas !== null;
-  } catch (error) {
-    console.error(`Error checking kelas ${kodeKelas}:`, error);
-    throw error;
-  }
+interface kelasext extends Kelas {
+  Dosen_Kelas_dosenUtamaIdToDosen: {
+    id: string;
+    nama: string;
+    email: string;
+    nip: string;
+  } | null;
+  Dosen_Kelas_dosenPendampingIdToDosen: {
+    id: string;
+    nama: string;
+    email: string;
+    nip: string;
+  } | null;
 }
 
-async function getKelasId(kodeKelas: string): Promise<string | null> {
+async function getKelas(kodeKelas: string): Promise<kelasext | null> {
   try {
     const kelas = await prisma.kelas.findUnique({
       where: {
         kodeKelas: kodeKelas,
       },
-      select: {
-        id: true,
+      include: {
+        Dosen_Kelas_dosenUtamaIdToDosen: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            nip: true,
+          },
+        },
+        Dosen_Kelas_dosenPendampingIdToDosen: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            nip: true,
+          },
+        },
       },
     });
 
-    return kelas ? kelas.id : null;
+    return kelas ? kelas : null;
   } catch (error) {
     console.error(`Error getting kelas ID for kodeKelas ${kodeKelas}:`, error);
     throw error;
@@ -80,13 +93,34 @@ type PageProps = {
   }>;
 };
 
+//check if user email is admin or dosen
+function isAdminOrDosen({
+  userEmail,
+  dosenUtama,
+  dosenPendamping,
+}: {
+  userEmail: string;
+  dosenUtama: string;
+  dosenPendamping: string;
+}): boolean {
+  if (
+    userEmail == "admin@face.my.id" ||
+    userEmail == dosenUtama ||
+    userEmail == dosenPendamping
+  )
+    return true;
+
+  return false;
+}
+
 export default async function PertemuanPage({ params }: PageProps) {
+  const user = await currentUser();
   const { kodekelas, pertemuan } = await params;
 
-  // Verifikasi apakah kelas ada
-  const kelasExists = await isKelasExists(kodekelas);
+  // Dapatkan ID kelas
+  const kelas = await getKelas(kodekelas);
 
-  if (!kelasExists) {
+  if (!kelas) {
     return (
       <main className="flex items-center justify-center min-h-screen">
         <div className="p-4 text-center text-red-700 rounded-lg bg-red-50">
@@ -96,21 +130,24 @@ export default async function PertemuanPage({ params }: PageProps) {
     );
   }
 
-  // Dapatkan ID kelas
-  const kelasId = await getKelasId(kodekelas);
-
-  if (!kelasId) {
+  if (!user) {
     return (
       <main className="flex items-center justify-center min-h-screen">
         <div className="p-4 text-center text-red-700 rounded-lg bg-red-50">
-          ID Kelas tidak ditemukan untuk kode &quot;{kodekelas}&quot;
+          Anda tidak memiliki akses ke halaman ini
         </div>
       </main>
     );
   }
 
+  const hakEdit = isAdminOrDosen({
+    userEmail: user?.primaryEmailAddress?.emailAddress || "",
+    dosenUtama: kelas.Dosen_Kelas_dosenUtamaIdToDosen?.email || "",
+    dosenPendamping: kelas.Dosen_Kelas_dosenPendampingIdToDosen?.email || "",
+  });
+
   // Dapatkan data absensi pertemuan
-  const absenPertemuan = await getPertemuanKelas(kelasId, pertemuan);
+  const absenPertemuan = await getPertemuanKelas(kelas.id, pertemuan);
 
   if (absenPertemuan.length === 0) {
     return (
@@ -141,81 +178,11 @@ export default async function PertemuanPage({ params }: PageProps) {
         <p className="text-gray-600">Tanggal: {tanggalPertemuan}</p>
       </div>
 
-      <TableAbsensi absensi={absenPertemuan} kodeKelas={kodekelas} />
-
-      {/* <div>
-        <h3 className="text-lg font-semibold mb-3">Data Absensi Mahasiswa</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-collapse border-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 border border-gray-300">No</th>
-                <th className="p-2 border border-gray-300">NIM</th>
-                <th className="p-2 border border-gray-300">Nama</th>
-                <th className="p-2 border border-gray-300">Status</th>
-                <th className="p-2 border border-gray-300">Waktu Absen</th>
-                <th className="p-2 border border-gray-300">Keterangan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {absenPertemuan.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                >
-                  <td className="p-2 border border-gray-300 text-center">
-                    {index + 1}
-                  </td>
-                  <td className="p-2 border border-gray-300">
-                    {item.Mahasiswa.nim}
-                  </td>
-                  <td className="p-2 border border-gray-300">
-                    {item.Mahasiswa.nama}
-                  </td>
-                  <td className="p-2 border border-gray-300 text-center">
-                    <StatusBadge status={item.statusKehadiran} />
-                  </td>
-                  <td className="p-2 border border-gray-300">
-                    {item.jamAbsen
-                      ? new Date(item.jamAbsen).toLocaleTimeString("id-ID")
-                      : "-"}
-                  </td>
-                  <td className="p-2 border border-gray-300">
-                    {item.keterangan || "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div> */}
+      <TableAbsensi
+        absensi={absenPertemuan}
+        kodeKelas={kodekelas}
+        hakEdit={hakEdit}
+      />
     </div>
   );
-}
-
-// Komponen tambahan untuk menampilkan status dengan warna
-function StatusBadge({ status }: { status: StatusKehadiran }) {
-  let badgeClass = "px-2 py-1 rounded text-xs font-medium";
-
-  switch (status) {
-    case "HADIR":
-      badgeClass += " bg-green-100 text-green-800";
-      break;
-    case "TELAT":
-      badgeClass += " bg-yellow-100 text-yellow-800";
-      break;
-    case "IZIN":
-      badgeClass += " bg-blue-100 text-blue-800";
-      break;
-    case "SAKIT":
-      badgeClass += " bg-purple-100 text-purple-800";
-      break;
-    case "ALPHA":
-      badgeClass += " bg-red-100 text-red-800";
-      break;
-    default:
-      badgeClass += " bg-gray-100 text-gray-800";
-  }
-
-  return <span className={badgeClass}>{status}</span>;
 }

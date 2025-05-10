@@ -56,9 +56,11 @@ function buttonStyle(statusValue: string) {
 function StyledButton({
   row,
   kodeKelas,
+  hakEdit,
 }: {
   row: MRT_Row<AbsenPertemuan>;
   kodeKelas: string;
+  hakEdit: boolean;
 }) {
   const [statusValueHold, setStatusValueHold] = React.useState<string>(
     row.original.statusKehadiran
@@ -82,15 +84,25 @@ function StyledButton({
         }),
       });
       console.log("Response:", response);
-      console.log("Status kehadiran", newStatus);
-      console.log("Mahasiswa ID", row.original.Mahasiswa.id);
-      console.log("No Pertemuan", row.original.nomorPertemuan);
-      console.log("Kode Kelas", kodeKelas);
     } catch (error) {
       console.error("Error:", error);
     }
   };
 
+  if (!hakEdit) {
+    return (
+      <Button
+        variant="contained"
+        className={cn(
+          buttonStyle(statusValueHold),
+          "flex items-center px-2 py-1 rounded text-md !text-white cursor-pointer"
+        )}
+        disabled
+      >
+        {statusValueHold}
+      </Button>
+    );
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -123,9 +135,11 @@ function StyledButton({
 export default function TableAbsensi({
   absensi,
   kodeKelas,
+  hakEdit,
 }: {
   absensi: AbsenPertemuan[];
   kodeKelas: string;
+  hakEdit: boolean;
 }) {
   const columnHelper = createMRTColumnHelper<AbsenPertemuan>();
 
@@ -143,7 +157,7 @@ export default function TableAbsensi({
       header: "Status Kehadiran",
       size: 150,
       Cell: ({ renderedCellValue, row }) => (
-        <StyledButton row={row} kodeKelas={kodeKelas} />
+        <StyledButton row={row} kodeKelas={kodeKelas} hakEdit={hakEdit} />
       ),
     }),
 

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { twMerge } from "tailwind-merge";
 // import { FreeCounter } from "@/components/free-counter";
 // TODO: uncomment this when clerk is set up
-// import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton } from "@clerk/nextjs";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -116,14 +116,14 @@ export default function SidebarDashboard({
           ))}
         </div>
       </div>
-      {/* <div className="w-full h-10 p-3 text-white ">
+      <div className="w-full h-10 p-3 text-white ">
         <SignOutButton>
           <div className="flex text-red-200 cursor-pointer">
             <Power className="w-5 h-5 mr-3" />
             Sign Out
           </div>
         </SignOutButton>
-      </div> */}
+      </div>
     </div>
   );
 }

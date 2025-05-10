@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Menu } from "lucide-react";
 //todo: uncomment this when clerk is set up
-// import { UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
@@ -31,7 +31,7 @@ export default function NavbarrDashboard({ isOpen, setIsOpen }: NavbarProps) {
         />
         <Image src="/logoel.png" alt="hero" height={50} width={50} priority />
       </div>
-      {/* <UserButton /> */}
+      <UserButton />
     </div>
   );
 }

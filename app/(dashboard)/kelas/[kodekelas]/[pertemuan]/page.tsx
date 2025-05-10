@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PrismaClient, StatusKehadiran } from "@/lib/generated/prisma";
+import TableAbsensi from "@/components/dashboard/table";
 const prisma = new PrismaClient();
 
 async function isKelasExists(kodeKelas: string): Promise<boolean> {
@@ -20,22 +21,6 @@ async function isKelasExists(kodeKelas: string): Promise<boolean> {
     console.error(`Error checking kelas ${kodeKelas}:`, error);
     throw error;
   }
-}
-
-// Interface yang disesuaikan dengan struktur hasil query
-interface AbsenPertemuan {
-  id: string;
-  nomorPertemuan: number;
-  tanggalPertemuan: Date;
-  statusKehadiran: StatusKehadiran;
-  jamAbsen: Date | null;
-  lokasi: string | null;
-  keterangan: string | null;
-  Mahasiswa: {
-    id: string;
-    nama: string;
-    nim: string;
-  };
 }
 
 async function getKelasId(kodeKelas: string): Promise<string | null> {
@@ -156,7 +141,9 @@ export default async function PertemuanPage({ params }: PageProps) {
         <p className="text-gray-600">Tanggal: {tanggalPertemuan}</p>
       </div>
 
-      <div>
+      <TableAbsensi absensi={absenPertemuan} kodeKelas={kodekelas} />
+
+      {/* <div>
         <h3 className="text-lg font-semibold mb-3">Data Absensi Mahasiswa</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full border border-collapse border-gray-200">
@@ -201,7 +188,7 @@ export default async function PertemuanPage({ params }: PageProps) {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

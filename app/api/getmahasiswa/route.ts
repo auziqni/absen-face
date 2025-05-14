@@ -10,7 +10,6 @@ export async function GET() {
         id: true,
         nama: true,
         email: true,
-        password: true,
       },
       orderBy: {
         nama: "asc",

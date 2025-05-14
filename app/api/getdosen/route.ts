@@ -11,6 +11,7 @@ export async function GET() {
         nama: true,
         nip: true,
         email: true,
+        password: true,
       },
       orderBy: {
         nama: "asc",
